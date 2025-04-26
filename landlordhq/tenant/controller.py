@@ -1,4 +1,4 @@
-"""Renter views."""
+"""Tenant controller."""
 
 from flask import Blueprint
 from flask import request

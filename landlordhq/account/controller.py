@@ -24,3 +24,21 @@ def account_delete():
     """Account delete view."""
     data = request.get_json()
     return f"Account delete view with data: {data}"
+
+@blueprint.route("/account/register", methods=["POST"])
+def account_register():
+    """Account register view."""
+    data = request.get_json()
+    return f"Account register view with data: {data}"
+
+@blueprint.route("/account/login", methods=["POST"])
+def account_login():
+    """Account login view."""
+    data = request.get_json()
+    return f"Account login view with data: {data}"
+
+@blueprint.route("/account/logout", methods=["POST"])
+def account_logout():
+    """Account logout view."""
+    data = request.get_json()
+    return f"Account logout view with data: {data}"

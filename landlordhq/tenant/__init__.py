@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-"""The renter module."""
-from . import views  # noqa
+"""The tenant module."""
+from . import controller  # noqa

@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 """The unit module."""
-from . import views  # noqa
+from . import controller  # noqa
