@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Create an application instance."""
 from flask.helpers import get_debug_flag
-from flask_migrate import Migrate
 
 from landlordhq.app import create_app
 from landlordhq.settings import DevConfig
@@ -11,8 +10,6 @@ from landlordhq.extensions import db
 CONFIG = DevConfig if get_debug_flag() else ProdConfig
 
 app = create_app(DevConfig)
-migrate = Migrate(app, db)
-
 
 @app.route("/")
 @app.route("/index")

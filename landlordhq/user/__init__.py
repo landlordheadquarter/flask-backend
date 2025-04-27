@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-"""The account account."""
+"""The unit module."""
 from . import controller  # noqa

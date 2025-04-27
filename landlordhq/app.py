@@ -1,6 +1,6 @@
 from flask import Flask 
 
-from landlordhq import tenant
+from landlordhq import account
 from landlordhq import unit
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -16,14 +16,14 @@ def create_app(config_object=DevConfig):
     db.init_app(app)
     migrate.init_app(app, db)  # Ensure Flask-Migrate is initialized here
 
+    from landlordhq.user.model import User
     register_blueprints(app)
     
     return app 
 
 
 def register_blueprints(app):
-    app.register_blueprint(tenant.controller.blueprint, url_prefix="/api/")
-    app.register_blueprint(unit.controller.blueprint, url_prefix="/api/")
+    app.register_blueprint(account.controller.blueprint, url_prefix="/api")
     
 def register_extensions(arg):
     """Register flask extensions."""
