@@ -1,7 +1,7 @@
 from flask import Flask 
 
 from landlordhq import account
-from landlordhq import unit
+from landlordhq import tenant
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from landlordhq.settings import DevConfig
@@ -17,6 +17,11 @@ def create_app(config_object=DevConfig):
     migrate.init_app(app, db)  # Ensure Flask-Migrate is initialized here
 
     from landlordhq.user.model import User
+    from landlordhq.tenant.model import Tenant
+    from landlordhq.unit.model import Unit
+    from landlordhq.unit.tenant_unit_association import tenant_unit_association
+    from landlordhq.meter_reading.model import MeterReading
+    
     register_blueprints(app)
     
     return app 

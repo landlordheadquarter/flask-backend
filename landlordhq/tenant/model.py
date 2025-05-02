@@ -1,4 +1,5 @@
-from landlordhq.app import db
+from landlordhq.extensions import db
+from landlordhq.unit.tenant_unit_association import tenant_unit_association
 
 class Tenant(db.Model):
     __tablename__ = 'tenants'
@@ -14,3 +15,6 @@ class Tenant(db.Model):
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
     user = db.relationship('User', back_populates='users')
+    units = db.relationship('Unit', secondary=tenant_unit_association, back_populates='tenants')
+     # Relationship with MeterReading
+    meter_readings = db.relationship('MeterReading', back_populates='tenants')

@@ -12,6 +12,10 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
+    # Relationship with Tenant
+    tenants = db.relationship('Tenant', back_populates='users')
+    meter_readings = db.relationship('MeterReading', back_populates='user')
+    
     def __init__(self, name, email, password=None, **kwargs):
         """Create a new user."""
         super().__init__(**kwargs)  # Pass any additional arguments to the parent class
