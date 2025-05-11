@@ -9,7 +9,12 @@ class ElectricityBill(db.Model):
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
     previous_reading_id = db.Column(db.Integer, db.ForeignKey('meter_readings.id'), nullable=False)
     current_reading_id = db.Column(db.Integer, db.ForeignKey('meter_readings.id'), nullable=False)
-    reading = db.Column(db.Float, nullable=False)
+    consumed_kilowatt = db.Column(db.Float, nullable=False)
+    kilowatt_price = db.Column(db.Float, nullable=False)
+    bill_date = db.Column(db.DateTime, nullable=False)
+    bill_amount = db.Column(db.Float, nullable=False)
+    bill_status = db.Column(db.String(50), nullable=False)  # e.g., 'paid', 'unpaid'
+    bill_due_date = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
