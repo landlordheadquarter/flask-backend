@@ -29,6 +29,10 @@ def create_tenant():
         address=data["address"],
         contact_no=data["contact_no"],
         start_date=data.get("start_date"),
+        terms=data.get("terms"),
+        billing_day=data.get("billing_day"),
+        advance_payment=data.get("advance_payment"),
+        deposit_amount=data.get("deposit_amount"),
         user_id=current_user_id,
     )
     
@@ -62,6 +66,14 @@ def update_tenant(tenant_id):
         tenant.start_date = data["start_date"]
     if data.get("end_date"):
         tenant.end_date = data["end_date"]
+    if data.get("billing_day"):
+        tenant.billing_day = data["billing_day"]
+    if data.get("advance_payment"):
+        tenant.advance_payment = data["advance_payment"]
+    if data.get("deposit_amount"):
+        tenant.deposit_amount = data["deposit_amount"]
+    if data.get("terms"):
+        tenant.terms = data["terms"]
 
     # Commit changes to the database
     db.session.commit()

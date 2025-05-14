@@ -12,6 +12,9 @@ class Tenant(db.Model):
     start_date = db.Column(db.DateTime, nullable=True)
     end_date = db.Column(db.DateTime, nullable=True)
     billing_day = db.Column(db.Integer, nullable=True)
+    advance_payment = db.Column(db.Float, nullable=True)
+    deposit_amount = db.Column(db.Float, nullable=True)
+    terms = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
