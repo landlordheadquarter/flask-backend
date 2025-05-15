@@ -57,6 +57,35 @@ def update_unit(unit_id):
 
     return {"message": "Unit updated successfully"}, 200
 
+@blueprint.route("/unit/available-units", methods=["GET"])
+@jwt_required()
+def get_available_units():
+    """Get all available units for the current logged-in user."""
+    current_user_id = get_jwt_identity()["id"]
+    
+    # Get all tenants associated with the current user
+    tenants = Unit.query.filter_by(user_id=current_user_id).all()
+    unit_ids = [tenant.unit_id for tenant in tenants]
+
+
+    # Query to get units that are not in the tenant_unit_association table
+    available_units = Unit.query.filter(
+        Unit.user_id == current_user_id,
+        Unit.id.notin_(unit_ids)
+    ).all()
+
+    # Format the response
+    unit_list = [
+        {
+            "id": unit.id,
+            "unit_no": unit.unit_no,
+            "created_at": unit.created_at,
+            "updated_at": unit.updated_at,
+        }
+        for unit in available_units
+    ]
+
+    return jsonify({"available_units": unit_list}), 200
 
 @blueprint.route("/units", methods=["GET"])
 @jwt_required()

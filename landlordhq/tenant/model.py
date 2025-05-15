@@ -1,5 +1,4 @@
 from landlordhq.extensions import db
-from landlordhq.unit.tenant_unit_association import tenant_unit_association
 
 class Tenant(db.Model):
     __tablename__ = 'tenants'
@@ -15,10 +14,11 @@ class Tenant(db.Model):
     advance_payment = db.Column(db.Float, nullable=True)
     deposit_amount = db.Column(db.Float, nullable=True)
     terms = db.Column(db.String(255), nullable=True)
+    unit_id = db.Column(db.Integer, db.ForeignKey('units.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
     user = db.relationship('User', back_populates='users')
-    units = db.relationship('Unit', secondary=tenant_unit_association, back_populates='tenants')
+    units = db.relationship('Unit', back_populates='units')
      # Relationship with MeterReading
     meter_readings = db.relationship('MeterReading', back_populates='tenants')
