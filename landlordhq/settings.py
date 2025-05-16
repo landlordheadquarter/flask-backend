@@ -22,7 +22,10 @@ class DevConfig(Config):
     """Development configuration."""
     
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = "mysql+pymysql://flaskuser:flaskpass@mysql:3306/flaskdb"  # PostgreSQL for production
+    SQLALCHEMY_DATABASE_URI = (
+        f"mysql+pymysql://{os.getenv('DB_USERNAME')}:{os.getenv('DB_PASSWORD')}"
+        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_DATABASE')}"
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     LOGGING_LEVEL = 'DEBUG'
     ENV = "dev"
