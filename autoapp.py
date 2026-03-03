@@ -2,7 +2,11 @@
 """Create an application instance."""
 from flask.helpers import get_debug_flag
 import os
+from dotenv import load_dotenv
 from flask_migrate import upgrade
+
+load_dotenv(override=True)
+
 from landlordhq.app import create_app
 from landlordhq.settings import DevConfig
 from landlordhq.settings import ProdConfig

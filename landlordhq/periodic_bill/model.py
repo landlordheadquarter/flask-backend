@@ -9,11 +9,10 @@ class PeriodicBill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
-    utility_type = db.Column(db.String(50), nullable=False)  # Must match a value from UTILITY_TYPES
+    utility_type_id = db.Column(db.Integer, db.ForeignKey('bill_types.id'), nullable=False)  # Must match a value from UTILITY_TYPES
     amount = db.Column(db.Float, nullable=False)
-    bill_date = db.Column(db.DateTime, nullable=False)
-    bill_due_date = db.Column(db.DateTime, nullable=False)
-    bill_status = db.Column(db.String(50), nullable=False)  # e.g., 'paid', 'unpaid'
+    is_fixed = db.Column(db.Boolean, default=False)  # Indicates if the bill amount is fixed or variable
+    #bill_status = db.Column(db.String(50), nullable=False)  # e.g., 'paid', 'unpaid'
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     # Relationships

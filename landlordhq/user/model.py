@@ -13,7 +13,8 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
     # Relationship with Tenant
-    tenants = db.relationship('Tenant', back_populates='users')
+    tenants = db.relationship('Tenant', back_populates='user')
+    units = db.relationship('Unit', back_populates='user')
     meter_readings = db.relationship('MeterReading', back_populates='user')
     
     def __init__(self, name, email, password=None, **kwargs):

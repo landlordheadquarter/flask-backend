@@ -28,6 +28,7 @@ def create_tenant():
         name=data["name"],
         address=data["address"],
         contact_no=data["contact_no"],
+        unit_id=data.get("unit_id"),
         start_date=data.get("start_date"),
         terms=data.get("terms"),
         billing_day=data.get("billing_day"),
@@ -40,6 +41,64 @@ def create_tenant():
     db.session.commit()
     
     return {"message": "Tenant created successfully"}, 201
+
+@blueprint.route("/tenants", methods=["GET"])
+@jwt_required()
+def get_tenants():
+    """Get all tenants, for the current logged in user."""
+    
+    tenants = Tenant.query.filter_by(user_id=get_jwt_identity()["id"]).all()
+    
+    tenant_list = [
+        {
+            "id": tenant.id,
+            "name": tenant.name,
+            "address": tenant.address,
+            "unit_id": tenant.unit_id,
+            "contact_no": tenant.contact_no,
+            "start_date": tenant.start_date,
+            "end_date": tenant.created_at,
+        }
+        for tenant in tenants
+    ]
+    
+    return jsonify({"tenants": tenant_list}), 200
+
+@blueprint.route("/tenant/<int:tenant_id>/archive", methods=["PATCH"])
+@jwt_required()
+def archive_tenant(tenant_id):
+    """Archive a tenant."""
+    # Get the current logged-in user's ID
+    current_user_id = get_jwt_identity()["id"]
+
+    # Find the tenant by ID and ensure it belongs to the current user
+    tenant = Tenant.query.filter_by(id=tenant_id, user_id=current_user_id).first()
+    if not tenant:
+        return {"error": "Tenant not found or does not belong to the current user"}, 404
+
+    # Archive the tenant
+    tenant.status = "archived"
+    db.session.commit()
+
+    return {"message": "Tenant archived successfully"}, 200
+@blueprint.route("/tenant/<int:tenant_id>/unarchive", methods=["PATCH"])
+@jwt_required()
+def unarchive_tenant(tenant_id):
+    """Unarchive a tenant."""
+    # Get the current logged-in user's ID
+    current_user_id = get_jwt_identity()["id"]
+
+    # Find the tenant by ID and ensure it belongs to the current user
+    tenant = Tenant.query.filter_by(id=tenant_id, user_id=current_user_id).first()
+    if not tenant:
+        return {"error": "Tenant not found or does not belong to the current user"}, 404
+
+    # Unarchive the tenant
+    tenant.status = "active"
+    db.session.commit()
+
+    return {"message": "Tenant unarchived successfully"}, 200
+
 
 @blueprint.route("/tenant/<int:tenant_id>", methods=["PUT"])
 @jwt_required()
@@ -74,59 +133,14 @@ def update_tenant(tenant_id):
         tenant.deposit_amount = data["deposit_amount"]
     if data.get("terms"):
         tenant.terms = data["terms"]
-
-    # Commit changes to the database
-    db.session.commit()
-
-    return {"message": "Tenant updated successfully"}, 200
-
-@blueprint.route("/tenants", methods=["GET"])
-@jwt_required()
-def get_tenants():
-    """Get all tenants, for the current logged in user."""
-    
-    tenants = Tenant.query.filter_by(user_id=get_jwt_identity()["id"]).all()
-    
-    tenant_list = [
-        {
-            "id": tenant.id,
-            "name": tenant.name,
-            "address": tenant.address,
-            "contact_no": tenant.contact_no,
-            "start_date": tenant.start_date,
-            "end_date": tenant.created_at,
-        }
-        for tenant in tenants
-    ]
-    
-    return jsonify({"tenants": tenant_list}), 200
-
-
-@blueprint.route("/tenant/<int:tenant_id>", methods=["PUT"])
-@jwt_required()
-def update_tenant(tenant_id):
-    """Update a tenant's details."""
-    data = request.get_json()
-
-    # Get the current logged-in user's ID
-    current_user_id = get_jwt_identity()["id"]
-
-    # Find the tenant by ID and ensure it belongs to the current user
-    tenant = Tenant.query.filter_by(id=tenant_id, user_id=current_user_id).first()
-    if not tenant:
-        return {"error": "Tenant not found or does not belong to the current user"}, 404
-
-    # Update tenant details
-    if data.get("name"):
-        tenant.name = data["name"]
-    if data.get("address"):
-        tenant.address = data["address"]
-    if data.get("contact_no"):
-        tenant.contact_no = data["contact_no"]
-    if data.get("start_date"):
-        tenant.start_date = data["start_date"]
-    if data.get("end_date"):
-        tenant.end_date = data["end_date"]
+    if data.get("emergency_contact"):
+        tenant.emergency_contact = data["emergency_contact"]
+    if data.get("emergency_contact_no"):
+        tenant.emergency_contact_no = data["emergency_contact_no"]
+    if data.get("unit_id"):
+        tenant.unit_id = data["unit_id"]
+    if data.get('status'):
+        tenant.status = data["status"]
 
     # Commit changes to the database
     db.session.commit()
@@ -151,31 +165,6 @@ def delete_tenant(tenant_id):
     db.session.commit()
 
     return {"message": "Tenant deleted successfully"}, 200
-
-@blueprint.route("/tenant/<int:tenant_id>/assign-unit/<int:unit_id>", methods=["POST"])
-@jwt_required()
-def assign_tenant_to_unit(tenant_id, unit_id):
-    """Assign a tenant to a specific unit."""
-    # Get the current logged-in user's ID
-    current_user_id = get_jwt_identity()["id"]
-
-    # Find the tenant and ensure it belongs to the current user
-    tenant = Tenant.query.filter_by(id=tenant_id, user_id=current_user_id).first()
-    if not tenant:
-        return {"error": "Tenant not found or does not belong to the current user"}, 404
-
-    # Find the unit and ensure it belongs to the current user
-    unit = Unit.query.filter_by(id=unit_id, user_id=current_user_id).first()
-    if not unit:
-        return {"error": "Unit not found or does not belong to the current user"}, 404
-
-    # Assign the tenant to the unit
-    if unit not in tenant.units:
-        tenant.units.append(unit)
-        db.session.commit()
-        return {"message": f"Tenant {tenant.name} assigned to unit {unit.unit_no} successfully"}, 200
-
-    return {"message": f"Tenant {tenant.name} is already assigned to unit {unit.unit_no}"}, 200
 
 @blueprint.route("/tenant/<int:tenant_id>/assign-unit/<int:unit_id>", methods=["POST"])
 @jwt_required()

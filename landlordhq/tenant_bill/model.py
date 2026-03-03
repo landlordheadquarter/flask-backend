@@ -13,13 +13,15 @@ class TenantBill(db.Model):
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=False)
     period_type = db.Column(db.String(50), nullable=False)  # e.g., 'monthly', 'quarterly'
     bill_type_id = db.Column(db.Integer, db.ForeignKey('bill_types.id'), nullable=False)
-    billing_day = db.Column(db.Integer, nullable=False)  # Stores the day of the month (1-31)
+    bill_amount = db.Column(db.Float, nullable=False)
+    periodic_bill_id = db.Column(db.Integer, nullable=True)  # ID of the periodic bill if applicable
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())        
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     # Relationships
     user = db.relationship('User', back_populates='tenant_bills')
     tenant = db.relationship('Tenant', back_populates='tenant_bills')
     bill_type = db.relationship('BillType', back_populates='tenant_bills')
+    period_bills = db.relationship('PeriodicBill', back_populates='tenant_bills')
     def __repr__(self):
         return f"<TenantBill id={self.id}, bill_amount={self.bill_amount}, tenant_id={self.tenant_id}>"
     def __init__(self, user_id, tenant_id, period_type, bill_type_id, due_date, bill_amount, bill_status):

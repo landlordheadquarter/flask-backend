@@ -26,9 +26,10 @@ services:
       FLASK_ENV: '${FLASK_ENV:-development}'
       FLASK_APP: 'landlordhq.app:create_app()'
       DB_HOST: 'mysql'
-      DB_USER: '${DB_USERNAME}'
+      DB_PORT: '3306'
+      DB_USERNAME: '${DB_USERNAME}'
       DB_PASSWORD: '${DB_PASSWORD}'
-      DB_NAME: '${DB_DATABASE}'
+      DB_DATABASE: '${DB_DATABASE}'
     volumes:
       - .:/app
     depends_on:

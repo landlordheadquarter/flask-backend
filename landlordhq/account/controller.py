@@ -5,9 +5,8 @@ from landlordhq.extensions import db
 from landlordhq.extensions import bcrypt
 
 from flask_jwt_extended import create_access_token
-from flask_jwt_extended import current_user
 from flask_jwt_extended import jwt_required
-from flask_jwt_extended import jwt_required, get_jwt
+from flask_jwt_extended import get_jwt
 
 blacklist = set()
 
@@ -70,8 +69,8 @@ def account_login():
         "user": {"name": user.name, "email": user.email}
     }), 200
 
-@jwt_required()
 @blueprint.route("/account/logout", methods=["POST"])
+@jwt_required()
 def account_logout():
     """Account logout view."""
     data = request.get_json()

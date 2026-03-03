@@ -27,6 +27,8 @@ def create_unit():
     # Create a new unit
     unit = Unit(
         unit_no=data["unit_no"],
+        electric_meter_no=data.get("electric_meter_no"),
+        water_meter_no=data.get("water_meter_no"),
         user_id=current_user_id,
     )
 
@@ -52,6 +54,10 @@ def update_unit(unit_id):
     # Update unit details
     if data.get("unit_no"):
         unit.unit_no = data["unit_no"]
+    if "electric_meter_no" in data:
+        unit.electric_meter_no = data.get("electric_meter_no")
+    if "water_meter_no" in data:
+        unit.water_meter_no = data.get("water_meter_no")
 
     db.session.commit()
 
@@ -79,6 +85,8 @@ def get_available_units():
         {
             "id": unit.id,
             "unit_no": unit.unit_no,
+            "electric_meter_no": unit.electric_meter_no,
+            "water_meter_no": unit.water_meter_no,
             "created_at": unit.created_at,
             "updated_at": unit.updated_at,
         }
@@ -99,6 +107,8 @@ def get_units():
         {
             "id": unit.id,
             "unit_no": unit.unit_no,
+            "electric_meter_no": unit.electric_meter_no,
+            "water_meter_no": unit.water_meter_no,
             "created_at": unit.created_at,
             "updated_at": unit.updated_at,
         }
