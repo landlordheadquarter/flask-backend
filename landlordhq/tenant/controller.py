@@ -6,8 +6,21 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from landlordhq.extensions import db
 from landlordhq.tenant.model import Tenant
 from landlordhq.user.model import User
+from landlordhq.unit.model import Unit
 
 blueprint = Blueprint("tenant", __name__)
+
+
+def _parse_due_date(value):
+    if value is None or value == "":
+        return None
+    try:
+        day = int(value)
+    except (TypeError, ValueError):
+        return None
+    if day < 1 or day > 31:
+        return None
+    return day
 
 @blueprint.route("/tenant", methods=["POST"])
 @jwt_required()
@@ -17,6 +30,10 @@ def create_tenant():
     
     if not data.get("name") or not data.get("address") or not data.get("contact_no"):
         return {"error": "Name, address, and contact number are required"}, 400
+
+    parsed_due_date = _parse_due_date(data.get("due_date"))
+    if data.get("due_date") not in (None, "") and parsed_due_date is None:
+        return {"error": "Due date must be a day of month between 1 and 31"}, 400
     
     current_user_id = get_jwt_identity()["id"]
     
@@ -29,6 +46,8 @@ def create_tenant():
         address=data["address"],
         contact_no=data["contact_no"],
         unit_id=data.get("unit_id"),
+        unit_rent_amount=data.get("unit_rent_amount"),
+        due_date=parsed_due_date,
         start_date=data.get("start_date"),
         terms=data.get("terms"),
         billing_day=data.get("billing_day"),
@@ -55,6 +74,8 @@ def get_tenants():
             "name": tenant.name,
             "address": tenant.address,
             "unit_id": tenant.unit_id,
+            "unit_rent_amount": tenant.unit_rent_amount,
+            "due_date": tenant.due_date,
             "contact_no": tenant.contact_no,
             "start_date": tenant.start_date,
             "end_date": tenant.created_at,
@@ -131,14 +152,21 @@ def update_tenant(tenant_id):
         tenant.advance_payment = data["advance_payment"]
     if data.get("deposit_amount"):
         tenant.deposit_amount = data["deposit_amount"]
+    if "unit_rent_amount" in data:
+        tenant.unit_rent_amount = data.get("unit_rent_amount")
+    if "due_date" in data:
+        parsed_due_date = _parse_due_date(data.get("due_date"))
+        if data.get("due_date") not in (None, "") and parsed_due_date is None:
+            return {"error": "Due date must be a day of month between 1 and 31"}, 400
+        tenant.due_date = parsed_due_date
     if data.get("terms"):
         tenant.terms = data["terms"]
     if data.get("emergency_contact"):
         tenant.emergency_contact = data["emergency_contact"]
     if data.get("emergency_contact_no"):
         tenant.emergency_contact_no = data["emergency_contact_no"]
-    if data.get("unit_id"):
-        tenant.unit_id = data["unit_id"]
+    if "unit_id" in data:
+        tenant.unit_id = data.get("unit_id")
     if data.get('status'):
         tenant.status = data["status"]
 

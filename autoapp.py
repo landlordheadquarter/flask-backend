@@ -5,7 +5,12 @@ import os
 from dotenv import load_dotenv
 from flask_migrate import upgrade
 
-load_dotenv(override=True)
+
+def _in_docker() -> bool:
+    return os.path.exists('/.dockerenv')
+
+
+load_dotenv(override=not _in_docker())
 
 from landlordhq.app import create_app
 from landlordhq.settings import DevConfig
