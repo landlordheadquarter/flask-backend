@@ -1,6 +1,7 @@
 from flask import Flask 
 
 from landlordhq import account
+from landlordhq import billing_period
 from landlordhq import tenant
 from landlordhq import unit
 from landlordhq.settings import DevConfig
@@ -19,6 +20,7 @@ def create_app(config_object=DevConfig):
     from landlordhq.tenant.model import Tenant
     from landlordhq.unit.model import Unit
     from landlordhq.meter_reading.model import MeterReading
+    from landlordhq.billing_period.model import BillingPeriod
     
     register_blueprints(app)
     
@@ -27,6 +29,7 @@ def create_app(config_object=DevConfig):
 
 def register_blueprints(app):
     app.register_blueprint(account.controller.blueprint, url_prefix="/api")
+    app.register_blueprint(billing_period.controller.blueprint, url_prefix="/api")
     app.register_blueprint(tenant.controller.blueprint, url_prefix="/api")
     app.register_blueprint(unit.controller.blueprint, url_prefix="/api")
     

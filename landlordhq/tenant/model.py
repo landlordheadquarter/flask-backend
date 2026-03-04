@@ -17,6 +17,12 @@ class Tenant(db.Model):
     advance_payment = db.Column(db.Float, nullable=True)
     deposit_amount = db.Column(db.Float, nullable=True)
     unit_rent_amount = db.Column(db.Float, nullable=True)
+    is_fixed_power_rate = db.Column(db.Boolean, nullable=False, default=False)
+    monthly_fixed_power_rate = db.Column(db.Float, nullable=True)
+    initial_electric_sub_meter_reading = db.Column(db.Float, nullable=True)
+    is_fixed_water_rate = db.Column(db.Boolean, nullable=False, default=False)
+    monthly_fixed_water_rate = db.Column(db.Float, nullable=True)
+    initial_water_sub_meter_reading = db.Column(db.Float, nullable=True)
     terms = db.Column(db.String(255), nullable=True)
     unit_id = db.Column(db.Integer, db.ForeignKey('units.id'), nullable=True)
     status = db.Column(db.String(50), nullable=True, default='active')  # e.g., 'active', 'inactive', archived
