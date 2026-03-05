@@ -10,6 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(100))
     role = db.Column(db.String(20), default='owner')
     password = db.Column(db.String(100))
+    contact_no = db.Column(db.String(30), nullable=True)
     address = db.Column(db.String(255), nullable=True)
     profile_photo_url = db.Column(db.String(255), nullable=True)
     latitude = db.Column(db.Float, nullable=True)

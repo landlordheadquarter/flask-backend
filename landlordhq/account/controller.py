@@ -1,8 +1,10 @@
 import os
 import uuid
+import json
 
 from flask import Blueprint, jsonify, request, send_from_directory
 from landlordhq.user.model import User
+from landlordhq.unit.model import Unit
 from landlordhq.extensions import db
 from landlordhq.extensions import bcrypt
 from werkzeug.utils import secure_filename
@@ -27,6 +29,41 @@ def _serialize_user(user):
         "name": user.name,
         "email": user.email,
         "role": user.role,
+        "contact_no": user.contact_no,
+        "address": user.address,
+        "profile_photo_url": user.profile_photo_url,
+        "latitude": user.latitude,
+        "longitude": user.longitude,
+    }
+
+
+def _parse_photo_urls(raw_value):
+    if not raw_value:
+        return []
+    try:
+        parsed = json.loads(raw_value)
+        if isinstance(parsed, list):
+            return parsed
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+    return []
+
+
+def _serialize_public_unit(unit):
+    return {
+        "id": unit.id,
+        "unit_no": unit.unit_no,
+        "description": unit.description,
+        "rate": unit.rate,
+        "photo_urls": _parse_photo_urls(unit.photo_urls),
+    }
+
+
+def _serialize_public_user(user):
+    return {
+        "id": user.id,
+        "name": user.name,
+        "contact_no": user.contact_no,
         "address": user.address,
         "profile_photo_url": user.profile_photo_url,
         "latitude": user.latitude,
@@ -76,6 +113,61 @@ def _save_profile_photo(file_item):
 @blueprint.route('/account/profile-photo/<path:filename>', methods=['GET'])
 def get_profile_photo(filename):
     return send_from_directory(_profile_upload_dir(), filename)
+
+
+@blueprint.route('/account/public-random', methods=['GET'])
+def get_random_public_profile():
+    random_user = (
+        User.query
+        .filter(User.name.isnot(None))
+        .filter(User.email.isnot(None))
+        .filter(User.password.isnot(None))
+        .order_by(db.func.rand())
+        .first()
+    )
+
+    if not random_user:
+        return jsonify({"user": None}), 200
+
+    return jsonify({
+        "user": _serialize_public_user(random_user),
+    }), 200
+
+
+@blueprint.route('/account/public-random-list', methods=['GET'])
+def get_random_public_profile_list():
+    limit = request.args.get('limit', default=10, type=int)
+    if not limit or limit < 1:
+        limit = 10
+    limit = min(limit, 30)
+
+    users = (
+        User.query
+        .filter(User.name.isnot(None))
+        .filter(User.email.isnot(None))
+        .filter(User.password.isnot(None))
+        .order_by(db.func.rand())
+        .limit(limit)
+        .all()
+    )
+
+    return jsonify({
+        "users": [_serialize_public_user(user) for user in users],
+    }), 200
+
+
+@blueprint.route('/account/public/<int:user_id>', methods=['GET'])
+def get_public_profile(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    units = Unit.query.filter_by(user_id=user.id).order_by(Unit.id.desc()).all()
+
+    return jsonify({
+        "user": _serialize_public_user(user),
+        "units": [_serialize_public_unit(unit) for unit in units],
+    }), 200
 
 @blueprint.route("/account/register", methods=["POST"])
 def register():
@@ -165,6 +257,9 @@ def update_profile():
 
     if "address" in data:
         user.address = data.get("address") or None
+
+    if "contact_no" in data:
+        user.contact_no = data.get("contact_no") or None
 
     latitude = _parse_lat_lng(data.get('latitude')) if 'latitude' in data else user.latitude
     longitude = _parse_lat_lng(data.get('longitude')) if 'longitude' in data else user.longitude
