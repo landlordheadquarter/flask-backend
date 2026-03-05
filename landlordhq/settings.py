@@ -26,6 +26,10 @@ class Config:
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or SECRET_KEY
     DEBUG = False
     APPLICATION_ROOT = "/"
+    EXPOSE_ERROR_DETAILS = os.environ.get('EXPOSE_ERROR_DETAILS', 'false').lower() == 'true'
+    ERROR_LOG_FILE = os.environ.get('ERROR_LOG_FILE') or 'instance/logs/backend_errors.log'
+    ERROR_LOG_MAX_BYTES = int(os.environ.get('ERROR_LOG_MAX_BYTES', 1048576))
+    ERROR_LOG_BACKUP_COUNT = int(os.environ.get('ERROR_LOG_BACKUP_COUNT', 5))
 
 class ProdConfig(Config):
     """Production configuration."""

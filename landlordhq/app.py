@@ -1,4 +1,10 @@
-from flask import Flask 
+import logging
+import os
+import uuid
+from logging.handlers import RotatingFileHandler
+
+from flask import Flask, g, jsonify
+from werkzeug.exceptions import HTTPException
 
 from landlordhq import account
 from landlordhq import audit_log
@@ -33,6 +39,7 @@ def create_app(config_object=DevConfig):
     from landlordhq.water_rate.model import WaterRate
     
     register_blueprints(app)
+    register_error_observability(app)
     
     return app 
 
@@ -48,6 +55,72 @@ def register_blueprints(app):
     app.register_blueprint(tenant.controller.blueprint, url_prefix="/api")
     app.register_blueprint(unit.controller.blueprint, url_prefix="/api")
     app.register_blueprint(water_rate.controller.blueprint, url_prefix="/api")
+
+
+def register_error_observability(app):
+    log_file = app.config.get('ERROR_LOG_FILE', 'instance/logs/backend_errors.log')
+    log_dir = os.path.dirname(log_file)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+
+    has_error_file_handler = any(
+        isinstance(handler, RotatingFileHandler)
+        and getattr(handler, 'baseFilename', '').endswith(os.path.basename(log_file))
+        for handler in app.logger.handlers
+    )
+
+    if not has_error_file_handler:
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=app.config.get('ERROR_LOG_MAX_BYTES', 1048576),
+            backupCount=app.config.get('ERROR_LOG_BACKUP_COUNT', 5),
+        )
+        file_handler.setLevel(logging.ERROR)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s | %(levelname)s | %(message)s'
+        ))
+        app.logger.addHandler(file_handler)
+
+    app.logger.setLevel(logging.INFO if app.debug else logging.ERROR)
+
+    @app.before_request
+    def add_request_id():
+        g.request_id = str(uuid.uuid4())
+
+    @app.after_request
+    def append_request_id_header(response):
+        if getattr(g, 'request_id', None):
+            response.headers['X-Request-ID'] = g.request_id
+        return response
+
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(error):
+        if error.code and error.code >= 500:
+            app.logger.error(
+                'HTTPException | request_id=%s | status=%s | description=%s',
+                getattr(g, 'request_id', 'n/a'),
+                error.code,
+                error.description,
+            )
+
+        return jsonify({
+            'error': error.description,
+            'request_id': getattr(g, 'request_id', None),
+        }), error.code or 500
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_exception(error):
+        request_id = getattr(g, 'request_id', None)
+        app.logger.exception('UnhandledException | request_id=%s', request_id)
+
+        payload = {
+            'error': 'Internal server error',
+            'request_id': request_id,
+        }
+        if app.config.get('EXPOSE_ERROR_DETAILS', False):
+            payload['details'] = str(error)
+
+        return jsonify(payload), 500
     
 def register_extensions(arg):
     """Register flask extensions."""

@@ -19,7 +19,7 @@ from landlordhq.extensions import db
 
 CONFIG = DevConfig if get_debug_flag() else ProdConfig
 
-app = create_app(DevConfig)
+app = create_app(CONFIG)
 
 # Run migrations automatically on startup
 if os.environ.get("RUN_MIGRATIONS", "false").lower() == "true":
@@ -33,4 +33,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8000)
+    app.run(debug=bool(getattr(CONFIG, 'DEBUG', False)), port=8000)
