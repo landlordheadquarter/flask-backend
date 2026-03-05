@@ -1,0 +1,35 @@
+- Go to backend folder:
+  cd /home/maione/www/biller-app/flask-backend
+
+- Start MySQL with Docker Compose:
+  docker compose up -d mysql
+
+- (First time only) Create Python virtual environment:
+  python3 -m venv .venv
+
+- Activate virtual environment:
+  source .venv/bin/activate
+
+- (First time only) Install backend dependencies:
+  pip install -r requirements.txt
+
+- Run Flask backend (API):
+  python autoapp.py
+
+- Backend runs at:
+  http://127.0.0.1:8000
+
+- Open a new terminal and go to frontend folder:
+  cd /home/maione/www/biller-app/vue-frontend-biller
+
+- (First time only) Install frontend dependencies:
+  npm install
+
+- Run Vue frontend:
+  npm run dev
+
+- Frontend runs at:
+  http://127.0.0.1:5173
+
+- API routing note:
+  Frontend /api calls are proxied to backend http://127.0.0.1:8000.

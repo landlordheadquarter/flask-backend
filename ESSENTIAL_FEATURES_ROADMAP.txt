@@ -1,0 +1,49 @@
+ESSENTIAL FEATURES ROADMAP
+Date: 2026-03-04
+Project: Biller App
+
+PHASE 1 (Core Cashflow, 1-2 weeks)
+1) Payments + Tenant Ledger
+   - Add payment records per billing period/tenant
+   - Track running balance: charges, payments, arrears, credits
+2) Billing Status Lifecycle
+   - Draft, Issued, Partially Paid, Paid, Overdue
+3) Receipt Generation
+   - Printable receipt per payment
+
+Backend Priority Tasks
+- Create payment module (model/controller)
+- Add migrations for payments + status fields
+- Update billing_period APIs to return status and balance-relevant fields
+- Add endpoints for payment create/list and tenant ledger summary
+
+Suggested Backend Deliverables
+- /api/payments (POST, GET)
+- /api/tenant/<id>/ledger (GET)
+- Updated /api/billing_period endpoints with status info
+
+PHASE 2 (Billing Automation, ~1 week)
+1) Bulk Monthly Bill Generation
+   - Generate bills for all active tenants in one run
+2) Overdue + Late Fee Rules
+   - Mark overdue based on due day/date
+   - Optional configurable late-fee calculation
+3) Notification Queue
+   - Start with in-app reminders; later add SMS/email provider
+
+PHASE 3 (Control + Reporting, 1-2 weeks)
+1) Search/Filter
+   - Filter by tenant, status, date range
+2) Exports
+   - CSV and printable PDF exports for history and ledger
+3) Audit Trail
+   - Track create/update/delete events for tenant/rates/bills/payments
+4) Role-based Access
+   - Owner/Admin/Staff permissions
+
+RECOMMENDED IMPLEMENTATION ORDER (NEXT)
+1) Payments + Ledger
+2) Billing Status Lifecycle
+3) Overdue Automation
+4) Bulk Billing
+5) Reporting + Audit + Roles
