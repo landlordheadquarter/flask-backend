@@ -7,6 +7,8 @@ class Tenant(db.Model):
     name = db.Column(db.String(100), nullable=False)
     address = db.Column(db.String(255), nullable=False)
     contact_no = db.Column(db.String(15), nullable=False)
+    email = db.Column(db.String(255), nullable=True, unique=True)
+    password = db.Column(db.String(255), nullable=True)
     emergency_contact = db.Column(db.String(100), nullable=True)
     emergency_contact_no = db.Column(db.String(15), nullable=True)
     due_date = db.Column(db.Integer, nullable=True)

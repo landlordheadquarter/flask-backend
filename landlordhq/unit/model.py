@@ -9,6 +9,8 @@ class Unit(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     occupants_count = db.Column(db.Integer, nullable=True)
     description = db.Column(db.String(255), nullable=True)
+    rate = db.Column(db.Float, nullable=True)
+    photo_urls = db.Column(db.Text, nullable=True)
     electric_meter_no = db.Column(db.String(50), nullable=True)
     water_meter_no = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())

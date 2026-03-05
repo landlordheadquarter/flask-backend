@@ -8,7 +8,12 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     email = db.Column(db.String(100))
+    role = db.Column(db.String(20), default='owner')
     password = db.Column(db.String(100))
+    address = db.Column(db.String(255), nullable=True)
+    profile_photo_url = db.Column(db.String(255), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
@@ -16,6 +21,11 @@ class User(db.Model):
     tenants = db.relationship('Tenant', back_populates='user')
     units = db.relationship('Unit', back_populates='user')
     meter_readings = db.relationship('MeterReading', back_populates='user')
+    power_rates = db.relationship('PowerRate', back_populates='user')
+    water_rates = db.relationship('WaterRate', back_populates='user')
+    payments = db.relationship('Payment', back_populates='user')
+    notifications = db.relationship('Notification', back_populates='user')
+    audit_logs = db.relationship('AuditLog', back_populates='user')
     
     def __init__(self, name, email, password=None, **kwargs):
         """Create a new user."""

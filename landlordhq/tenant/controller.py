@@ -2,11 +2,15 @@
 
 from flask import Blueprint, jsonify
 from flask import request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import or_
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from landlordhq.extensions import db
+from landlordhq.extensions import bcrypt
+from landlordhq.billing_period.model import BillingPeriod
 from landlordhq.tenant.model import Tenant
 from landlordhq.user.model import User
 from landlordhq.unit.model import Unit
+from landlordhq.utils import log_audit_action, require_roles
 
 blueprint = Blueprint("tenant", __name__)
 
@@ -50,14 +54,67 @@ def _parse_non_negative_float(value):
         return None
     return number
 
+
+def _serialize_tenant(tenant):
+    return {
+        "id": tenant.id,
+        "name": tenant.name,
+        "address": tenant.address,
+        "unit_id": tenant.unit_id,
+        "unit_rent_amount": tenant.unit_rent_amount,
+        "due_date": tenant.due_date,
+        "contact_no": tenant.contact_no,
+        "email": tenant.email,
+        "is_fixed_power_rate": tenant.is_fixed_power_rate,
+        "monthly_fixed_power_rate": tenant.monthly_fixed_power_rate,
+        "initial_electric_sub_meter_reading": tenant.initial_electric_sub_meter_reading,
+        "is_fixed_water_rate": tenant.is_fixed_water_rate,
+        "monthly_fixed_water_rate": tenant.monthly_fixed_water_rate,
+        "initial_water_sub_meter_reading": tenant.initial_water_sub_meter_reading,
+        "start_date": tenant.start_date,
+        "end_date": tenant.created_at,
+        "status": tenant.status,
+    }
+
+
+def _serialize_tenant_billing_period(period):
+    paid_amount = float(period.paid_amount or 0)
+    total_amount = float(period.total_amount or 0)
+    return {
+        "id": period.id,
+        "from_date": str(period.from_date),
+        "end_date": str(period.end_date),
+        "monthly_rent_amount": period.monthly_rent_amount,
+        "electric_charge_amount": period.electric_charge_amount,
+        "water_charge_amount": period.water_charge_amount,
+        "late_fee_amount": period.late_fee_amount,
+        "total_amount": period.total_amount,
+        "status": period.status,
+        "paid_amount": paid_amount,
+        "outstanding_amount": total_amount - paid_amount,
+        "notes": period.notes,
+        "due_date": period.due_date.isoformat() if period.due_date else None,
+        "created_at": period.created_at.isoformat() if period.created_at else None,
+    }
+
 @blueprint.route("/tenant", methods=["POST"])
 @jwt_required()
+@require_roles('owner', 'admin')
 def create_tenant():
     """create a new tenant."""
     data = request.get_json()
     
     if not data.get("name") or not data.get("address") or not data.get("contact_no"):
         return {"error": "Name, address, and contact number are required"}, 400
+
+    tenant_email = (data.get("email") or "").strip().lower()
+    tenant_password = data.get("password")
+    if not tenant_email or not tenant_password:
+        return {"error": "Tenant email and password are required"}, 400
+
+    existing_tenant = Tenant.query.filter(Tenant.email == tenant_email).first()
+    if existing_tenant:
+        return {"error": "Tenant email already exists"}, 400
 
     parsed_due_date = _parse_due_date(data.get("due_date"))
     if data.get("due_date") not in (None, "") and parsed_due_date is None:
@@ -104,6 +161,8 @@ def create_tenant():
         name=data["name"],
         address=data["address"],
         contact_no=data["contact_no"],
+        email=tenant_email,
+        password=bcrypt.generate_password_hash(tenant_password).decode("utf-8"),
         unit_id=data.get("unit_id"),
         unit_rent_amount=data.get("unit_rent_amount"),
         due_date=parsed_due_date,
@@ -123,6 +182,9 @@ def create_tenant():
     
     db.session.add(tenant)
     db.session.commit()
+
+    log_audit_action(current_user_id, 'create', 'tenant', tenant.id, f'Tenant created: {tenant.name}')
+    db.session.commit()
     
     return {"message": "Tenant created successfully"}, 201
 
@@ -130,34 +192,35 @@ def create_tenant():
 @jwt_required()
 def get_tenants():
     """Get all tenants, for the current logged in user."""
+
+    current_user_id = get_jwt_identity()["id"]
+    query = Tenant.query.filter_by(user_id=current_user_id)
+
+    keyword = request.args.get('q', '').strip()
+    status = request.args.get('status', '').strip().lower()
+
+    if keyword:
+        like_query = f"%{keyword}%"
+        query = query.filter(
+            or_(
+                Tenant.name.ilike(like_query),
+                Tenant.address.ilike(like_query),
+                Tenant.contact_no.ilike(like_query),
+            )
+        )
+
+    if status:
+        query = query.filter(Tenant.status == status)
+
+    tenants = query.order_by(Tenant.id.desc()).all()
     
-    tenants = Tenant.query.filter_by(user_id=get_jwt_identity()["id"]).all()
-    
-    tenant_list = [
-        {
-            "id": tenant.id,
-            "name": tenant.name,
-            "address": tenant.address,
-            "unit_id": tenant.unit_id,
-            "unit_rent_amount": tenant.unit_rent_amount,
-            "due_date": tenant.due_date,
-            "contact_no": tenant.contact_no,
-            "is_fixed_power_rate": tenant.is_fixed_power_rate,
-            "monthly_fixed_power_rate": tenant.monthly_fixed_power_rate,
-            "initial_electric_sub_meter_reading": tenant.initial_electric_sub_meter_reading,
-            "is_fixed_water_rate": tenant.is_fixed_water_rate,
-            "monthly_fixed_water_rate": tenant.monthly_fixed_water_rate,
-            "initial_water_sub_meter_reading": tenant.initial_water_sub_meter_reading,
-            "start_date": tenant.start_date,
-            "end_date": tenant.created_at,
-        }
-        for tenant in tenants
-    ]
+    tenant_list = [_serialize_tenant(tenant) for tenant in tenants]
     
     return jsonify({"tenants": tenant_list}), 200
 
 @blueprint.route("/tenant/<int:tenant_id>/archive", methods=["PATCH"])
 @jwt_required()
+@require_roles('owner', 'admin')
 def archive_tenant(tenant_id):
     """Archive a tenant."""
     # Get the current logged-in user's ID
@@ -172,9 +235,13 @@ def archive_tenant(tenant_id):
     tenant.status = "archived"
     db.session.commit()
 
+    log_audit_action(current_user_id, 'archive', 'tenant', tenant.id, f'Tenant archived: {tenant.name}')
+    db.session.commit()
+
     return {"message": "Tenant archived successfully"}, 200
 @blueprint.route("/tenant/<int:tenant_id>/unarchive", methods=["PATCH"])
 @jwt_required()
+@require_roles('owner', 'admin')
 def unarchive_tenant(tenant_id):
     """Unarchive a tenant."""
     # Get the current logged-in user's ID
@@ -189,11 +256,15 @@ def unarchive_tenant(tenant_id):
     tenant.status = "active"
     db.session.commit()
 
+    log_audit_action(current_user_id, 'unarchive', 'tenant', tenant.id, f'Tenant unarchived: {tenant.name}')
+    db.session.commit()
+
     return {"message": "Tenant unarchived successfully"}, 200
 
 
 @blueprint.route("/tenant/<int:tenant_id>", methods=["PUT"])
 @jwt_required()
+@require_roles('owner', 'admin')
 def update_tenant(tenant_id):
     """Update a tenant's details."""
     data = request.get_json()
@@ -213,6 +284,21 @@ def update_tenant(tenant_id):
         tenant.address = data["address"]
     if data.get("contact_no"):
         tenant.contact_no = data["contact_no"]
+    if "email" in data:
+        normalized_email = (data.get("email") or "").strip().lower()
+        if not normalized_email:
+            return {"error": "Tenant email is required"}, 400
+
+        existing_tenant = Tenant.query.filter(
+            Tenant.email == normalized_email,
+            Tenant.id != tenant.id,
+        ).first()
+        if existing_tenant:
+            return {"error": "Tenant email already exists"}, 400
+        tenant.email = normalized_email
+
+    if "password" in data and data.get("password"):
+        tenant.password = bcrypt.generate_password_hash(data.get("password")).decode("utf-8")
     if data.get("start_date"):
         tenant.start_date = data["start_date"]
     if data.get("end_date"):
@@ -288,11 +374,81 @@ def update_tenant(tenant_id):
     # Commit changes to the database
     db.session.commit()
 
+    log_audit_action(current_user_id, 'update', 'tenant', tenant.id, f'Tenant updated: {tenant.name}')
+    db.session.commit()
+
     return {"message": "Tenant updated successfully"}, 200
+
+
+@blueprint.route('/tenant/portal/login', methods=['POST'])
+def tenant_portal_login():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password')
+
+    if not email or not password:
+        return {"error": "Email and password are required"}, 400
+
+    tenant = Tenant.query.filter(Tenant.email == email).first()
+    if not tenant or not tenant.password:
+        return {"error": "Tenant not found"}, 404
+
+    if not bcrypt.check_password_hash(tenant.password, password):
+        return {"error": "Invalid password"}, 401
+
+    access_token = create_access_token(identity={
+        "type": "tenant",
+        "tenant_id": tenant.id,
+        "user_id": tenant.user_id,
+        "email": tenant.email,
+    })
+
+    return jsonify({
+        "message": "Login successful",
+        "access_token": access_token,
+        "tenant": {
+            "id": tenant.id,
+            "name": tenant.name,
+            "email": tenant.email,
+        },
+    }), 200
+
+
+@blueprint.route('/tenant/portal/billing-history', methods=['GET'])
+@jwt_required()
+def tenant_portal_billing_history():
+    identity = get_jwt_identity() or {}
+    if identity.get('type') != 'tenant' or not identity.get('tenant_id'):
+        return {"error": "Tenant authorization required"}, 403
+
+    tenant = Tenant.query.filter_by(id=identity.get('tenant_id')).first()
+    if not tenant:
+        return {"error": "Tenant not found"}, 404
+
+    billing_periods = (
+        BillingPeriod.query
+        .filter_by(tenant_id=tenant.id)
+        .order_by(BillingPeriod.end_date.desc(), BillingPeriod.id.desc())
+        .all()
+    )
+
+    return jsonify({
+        "tenant": {
+            "id": tenant.id,
+            "name": tenant.name,
+            "email": tenant.email,
+            "address": tenant.address,
+            "contact_no": tenant.contact_no,
+            "unit_rent_amount": tenant.unit_rent_amount,
+            "due_date": tenant.due_date,
+        },
+        "billing_periods": [_serialize_tenant_billing_period(item) for item in billing_periods],
+    }), 200
 
 
 @blueprint.route("/tenant/<int:tenant_id>", methods=["DELETE"])
 @jwt_required()
+@require_roles('owner', 'admin')
 def delete_tenant(tenant_id):
     """Delete a tenant."""
     # Get the current logged-in user's ID
@@ -304,7 +460,11 @@ def delete_tenant(tenant_id):
         return {"error": "Tenant not found or does not belong to the current user"}, 404
 
     # Delete the tenant
+    tenant_name = tenant.name
     db.session.delete(tenant)
+    db.session.commit()
+
+    log_audit_action(current_user_id, 'delete', 'tenant', tenant_id, f'Tenant deleted: {tenant_name}')
     db.session.commit()
 
     return {"message": "Tenant deleted successfully"}, 200
