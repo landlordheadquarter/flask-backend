@@ -1,0 +1,1 @@
+from autoapp import app
